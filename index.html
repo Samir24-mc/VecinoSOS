@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VecinoSOS 🩵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <header>
+    <h1>VecinoSOS 🩵</h1>
+    <p>Tu red vecinal contra la inseguridad</p>
+  </header>
+
+  <main>
+    <!-- Botones de emergencia -->
+    <section class="emergencias">
+      <h2>Selecciona tipo de emergencia</h2>
+      <div class="grid-emergencias">
+        <button class="btn-emergencia" data-tipo="Robo">🚓 Robo</button>
+        <button class="btn-emergencia" data-tipo="Incendio">🔥 Incendio</button>
+        <button class="btn-emergencia" data-tipo="Emergencia médica">🚑 Emergencia médica</button>
+        <button class="btn-emergencia" data-tipo="Accidente">⚠️ Accidente</button>
+      </div>
+    </section>
+
+    <!-- Formulario rápido de confirmación -->
+    <section id="formulario" class="formulario" style="display:none;">
+      <h2>Confirmar reporte</h2>
+      <p id="tipoSeleccionado"></p>
+      <input type="text" id="descripcion" placeholder="Descripción adicional (opcional)">
+      <button id="enviarReporte">📤 Enviar reporte</button>
+    </section>
+
+    <!-- Mini mapa -->
+    <section id="mapaSection" class="mapa" style="display:none;">
+      <h2>Tu ubicación</h2>
+      <div id="map" style="height: 300px;"></div>
+    </section>
+
+    <!-- Estado -->
+    <section id="estado" class="estado"></section>
+  </main>
+
+  <footer>
+    <p>© 2025 VecinoSOS - Conectando comunidades seguras</p>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

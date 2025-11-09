@@ -1,0 +1,101 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f9ff;
+  color: #333;
+  margin: 0;
+  text-align: center;
+}
+
+header {
+  background-color: #b2ebf2;
+  padding: 20px;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+}
+
+header h1 { margin:0; font-size:2em; }
+header p { color:#444; }
+
+.grid-emergencias {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin: 20px auto;
+  max-width: 400px;
+}
+
+.btn-emergencia {
+  background-color: #00bcd4;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 20px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-emergencia:hover { transform: scale(1.05); }
+
+.formulario, .mapa {
+  background-color: #e0f7fa;
+  padding: 20px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 400px;
+  margin: 20px auto;
+  box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid #b2ebf2;
+}
+
+button#enviarReporte {
+  background-color: #00796b;
+  color: white;
+  border-radius: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button#enviarReporte:hover {
+  background-color: #004d40;
+}
+
+.estado {
+  font-size: 1.1em;
+  color: #00796b;
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #b2ebf2, #e0f7fa);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+  text-align: center;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.estado strong {
+  color: #004d40;
+}
+
+.estado:hover {
+  transform: scale(1.02);
+  box-shadow: 0px 6px 15px rgba(0,0,0,0.2);
+}
+
+footer {
+  background-color:#b2ebf2;
+  padding:10px;
+  font-size:0.9em;
+  color:#444;
+}
