@@ -1,29 +1,16 @@
-// ========================
-// VARIABLES GLOBALES
-// ========================
-let tipoSeleccionado = "";
-let latActual = null;
-let lngActual = null;
+// main.js (module)
+// VecinoSOS - formulario + Leaflet + Firebase Realtime DB
+// Asegúrate de cargar este archivo como <script type="module" src="...">
 
-// ========================
-// SELECCIÓN DE TIPO DE EMERGENCIA
-// ========================
-document.querySelectorAll(".btn-emergencia").forEach(btn => {
-  btn.addEventListener("click", () => {
-    tipoSeleccionado = btn.dataset.tipo;
-    document.getElementById("tipoSeleccionado").textContent = "Emergencia: " + tipoSeleccionado;
-    document.getElementById("formulario").style.display = "block";
-    document.getElementById("mapaSection").style.display = "block";
-    initMap();
-  });
-});
-
-// ========================
-// FIREBASE CONFIG
-// ========================
+// ----------------------
+// IMPORTAR FIREBASE (CDN modules)
+// ----------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
+// ----------------------
+// CONFIGURACIÓN FIREBASE (tu proyecto)
+// ----------------------
 const firebaseConfig = {
   apiKey: "AIzaSyC4EU6DaP0o5glt84yl40jOsYKQc3PUY8E",
   authDomain: "vecinosos-c9a17.firebaseapp.com",
@@ -34,73 +21,168 @@ const firebaseConfig = {
   appId: "1:447312521513:web:1acf34a6634ff05ee12f38"
 };
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// ========================
-// FUNCIÓN PARA MOSTRAR MAPA
-// ========================
-function initMap() {
+// ----------------------
+// ESTADO GLOBAL
+// ----------------------
+let tipoSeleccionado = "";
+let latActual = null;
+let lngActual = null;
+let mapaInicializado = false;
+let leafletMap = null;
+let usuarioMarker = null;
+
+// ----------------------
+// INIT (esperar DOM)
+// ----------------------
+document.addEventListener("DOMContentLoaded", () => {
+  setupTipoButtons();
+  setupEnviarReporte();
+  // ocultar inicialmente formulario y mapa (por si no lo están)
+  const formEl = document.getElementById("formulario");
+  const mapaSec = document.getElementById("mapaSection");
+  if (formEl) formEl.style.display = "none";
+  if (mapaSec) mapaSec.style.display = "none";
+});
+
+// ----------------------
+// SETUP: botones tipo emergencia
+// ----------------------
+function setupTipoButtons() {
+  const botones = document.querySelectorAll(".btn-emergencia");
+  botones.forEach(btn => {
+    btn.addEventListener("click", () => {
+      tipoSeleccionado = btn.dataset.tipo || "";
+      const tipoDisplay = document.getElementById("tipoSeleccionado");
+      if (tipoDisplay) tipoDisplay.textContent = "Emergencia: " + tipoSeleccionado;
+
+      // mostrar formulario y mapa
+      const formEl = document.getElementById("formulario");
+      const mapaSec = document.getElementById("mapaSection");
+      if (formEl) formEl.style.display = "block";
+      if (mapaSec) mapaSec.style.display = "block";
+
+      // iniciar mapa y geolocalización (si no está ya)
+      initMapIfNeeded();
+    });
+  });
+}
+
+// ----------------------
+// INICIALIZAR MAPA (solo ubicación actual) con Leaflet
+// ----------------------
+function initMapIfNeeded() {
+  if (mapaInicializado) return;
+  mapaInicializado = true;
+
+  // verificar geolocalización
   if (!navigator.geolocation) {
     alert("Tu navegador no soporta geolocalización.");
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(position => {
-    latActual = position.coords.latitude;
-    lngActual = position.coords.longitude;
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      latActual = position.coords.latitude;
+      lngActual = position.coords.longitude;
 
-    const map = L.map('mapa').setView([latActual, lngActual], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+      // crear mapa Leaflet
+      const mapDiv = document.getElementById("mapa");
+      if (!mapDiv) return;
 
-    L.marker([latActual, lngActual]).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-  }, () => {
-    alert("No se pudo obtener la ubicación.");
+      // Si ya existe un mapa construido por Leaflet, removerlo (por seguridad)
+      if (leafletMap) {
+        try { leafletMap.remove(); } catch(e) { /* ignore */ }
+      }
+
+      leafletMap = L.map(mapDiv).setView([latActual, lngActual], 16);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(leafletMap);
+
+      // marcador del usuario
+      usuarioMarker = L.marker([latActual, lngActual]).addTo(leafletMap).bindPopup("Tu ubicación").openPopup();
+    },
+    (err) => {
+      console.error("Error geolocalización:", err);
+      alert("No pudimos obtener tu ubicación. Revisa permisos del navegador.");
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
+}
+
+// ----------------------
+// ENVIAR REPORTE: setup listener
+// ----------------------
+function setupEnviarReporte() {
+  const botonEnviar = document.getElementById("enviarReporte");
+  if (!botonEnviar) return;
+
+  botonEnviar.addEventListener("click", (e) => {
+    e.preventDefault();
+    enviarReporte();
   });
 }
 
-// ========================
-// ENVIAR EMERGENCIA
-// ========================
-document.getElementById("enviarReporte").addEventListener("click", () => {
-  const descripcion = document.getElementById("descripcion").value.trim();
-  const ubicacion = document.getElementById("ubicacionManual").value.trim();
+// ----------------------
+// FUNCIÓN: enviarReporte (valida + push a Firebase)
+// ----------------------
+function enviarReporte() {
+  const descripcionEl = document.getElementById("descripcion");
+  const ubicacionManualEl = document.getElementById("ubicacionManual");
+  const estadoEl = document.getElementById("estado");
+
+  const descripcion = descripcionEl ? descripcionEl.value.trim() : "";
+  const ubicacionManual = ubicacionManualEl ? ubicacionManualEl.value.trim() : "";
 
   if (!tipoSeleccionado) {
-    alert("Selecciona un tipo de emergencia.");
+    alert("Por favor selecciona un tipo de emergencia.");
     return;
   }
 
-  const nuevaEmergencia = {
+  // construir objeto emergencia
+  const emergenciaObj = {
     tipo: tipoSeleccionado,
     descripcion: descripcion || "Sin descripción",
-    ubicacion: ubicacion || "No especificada",
-    lat: latActual,
-    lng: lngActual,
-    estado: "En proceso"
+    ubicacion_texto: ubicacionManual || "No especificada",
+    lat: (latActual !== null ? latActual : null),
+    lng: (lngActual !== null ? lngActual : null),
+    estado: "Pendiente",
+    creadoEn: new Date().toISOString()
   };
 
-  // Enviar a Firebase
-  push(ref(database, "emergencias"), nuevaEmergencia)
+  // push a Realtime Database
+  push(ref(database, "emergencias"), emergenciaObj)
     .then(() => {
-      document.getElementById("estado").innerHTML = `
-        🚨 EMERGENCIA ENVIADA 🚨<br>
-        <strong>Tipo:</strong> ${tipoSeleccionado}<br>
-        <strong>Descripción:</strong> ${descripcion}<br>
-        <strong>Ubicación:</strong> ${ubicacion || "No disponible"}<br>
-        <strong>Estado:</strong> En proceso
-      `;
-      document.getElementById("formulario").style.display = "none";
-      document.getElementById("mapaSection").style.display = "none";
-      document.getElementById("descripcion").value = "";
-      document.getElementById("ubicacionManual").value = "";
+      // mostrar mensaje al usuario
+      if (estadoEl) {
+        estadoEl.innerHTML = `
+          🚨 TU EMERGENCIA ESTÁ SIENDO ATENDIDA 🚨<br>
+          <strong>Tipo:</strong> ${emergenciaObj.tipo}<br>
+          <strong>Descripción:</strong> ${emergenciaObj.descripcion}<br>
+          <strong>Ubicación:</strong> ${emergenciaObj.ubicacion_texto}<br>
+          <strong>Estado:</strong> ${emergenciaObj.estado}
+        `;
+      }
+      // limpiar y ocultar formulario/mapa
+      if (descripcionEl) descripcionEl.value = "";
+      if (ubicacionManualEl) ubicacionManualEl.value = "";
+      const formEl = document.getElementById("formulario");
+      const mapaSec = document.getElementById("mapaSection");
+      if (formEl) formEl.style.display = "none";
+      if (mapaSec) mapaSec.style.display = "none";
+
+      // opcional: volver a resetear tipo seleccionado
+      tipoSeleccionado = "";
+      const tipoDisplay = document.getElementById("tipoSeleccionado");
+      if (tipoDisplay) tipoDisplay.textContent = "Emergencia: --";
     })
-    .catch((error) => {
-      console.error("Error al enviar la emergencia:", error);
-      alert("Error al enviar la emergencia. Inténtalo nuevamente.");
+    .catch((err) => {
+      console.error("Error enviando emergencia:", err);
+      alert("Ocurrió un error al enviar la emergencia. Revisa la consola.");
     });
-});
+}
